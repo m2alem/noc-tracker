@@ -43,6 +43,7 @@
     .btn-export { background:#f97316; color:#fff; }
     .btn-load { background:#0ea5e9; color:#fff; }
     .btn-reset { background:#ef4444; color:#fff; }
+    .btn-share { background:#6366f1; color:#fff; } /* Share button */
 
     .container {
       max-width: 1280px;
@@ -309,6 +310,7 @@
       <button class="btn-save" onclick="saveProgress()">💾 Save</button>
       <button class="btn-load" onclick="loadProgress()">📥 Load</button>
       <button class="btn-export" onclick="exportPDF()">📄 Export PDF</button>
+      <button class="btn-share" onclick="shareTracker()">🔗 Share Link</button>
       <button class="btn-reset" onclick="resetProgress()">♻ Reset</button>
     </div>
   </div>
@@ -440,6 +442,10 @@
   <div class="container print-only" id="printView"></div>
 
   <script>
+    // Detect view-only mode from URL (?view=readonly)
+    const params = new URLSearchParams(window.location.search);
+    const VIEW_ONLY_MODE = params.get('view') === 'readonly';
+
     const parks = ['Al Hayer','Al Basra','Al Waqan','Abu Samra'];
     const entities = [
       'Al Ain Distribution Company - AADC - WATER',
@@ -702,7 +708,7 @@
 
       // Logos banner (first page header)
       const logo = document.createElement('img');
-      logo.src = 'logos-header.png';  // put your combined logos image in same folder with this name
+      logo.src = 'logos-header.png';  // combined logos image
       logo.alt = 'DMT, ICON, Greenstone logos';
       logo.className = 'print-logo';
       container.appendChild(logo);
@@ -815,6 +821,25 @@
       window.print();
     }
 
+    // 2-in-1 Share button: generate READ-ONLY link (?view=readonly)
+    function shareTracker() {
+      const url = new URL(window.location.href);
+      url.searchParams.set('view', 'readonly');
+      const shareUrl = url.toString();
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrl)
+          .then(() => {
+            alert("View-only link copied! You can now paste and share it:\n" + shareUrl);
+          })
+          .catch(() => {
+            alert("Could not copy automatically. Please copy this link:\n" + shareUrl);
+          });
+      } else {
+        alert("Copy this view-only link and share it:\n" + shareUrl);
+      }
+    }
+
     // Attachments (not saved)
     function initAttachments(){
       const map = [
@@ -841,10 +866,20 @@
       });
     }
 
+    // On load: apply view-only mode (hide buttons) if ?view=readonly
+    window.addEventListener('DOMContentLoaded', () => {
+      if (VIEW_ONLY_MODE) {
+        document.querySelectorAll('.btn-save, .btn-load, .btn-reset, .btn-share').forEach(btn => {
+          if (btn) btn.style.display = 'none';
+        });
+      }
+    });
+
     window.saveProgress = saveProgress;
     window.loadProgress = loadProgress;
     window.resetProgress = resetProgress;
     window.exportPDF = exportPDF;
+    window.shareTracker = shareTracker;
 
     buildTable();
     initAttachments();
