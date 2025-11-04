@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>NOC Tracker</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #e0f2fe; /* light blue */
+      color: #222;
+    }
+    .header {
+      background: linear-gradient(90deg,#1d4ed8,#3b82f6);
+      color: #fff;
+      padding: 16px 24px; /* bigger header */
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-title {
+      font-size: 22px; /* bigger title */
+      font-weight: bold;
+    }
+    .header-sub {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+    .header-buttons button {
+      margin-left: 6px;
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: none;
+      font-size: 11px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-save { background:#22c55e; color:#fff; }
+    .btn-export { background:#f97316; color:#fff; }
+    .btn-load { background:#0ea5e9; color:#fff; }
+    .btn-reset { background:#ef4444; color:#fff; }
+
+    .container {
+      max-width: 1280px;
+      margin: 14px auto 24px;
+      padding: 0 12px;
+    }
+    .card {
+      background:#fff;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(15,23,42,0.08);
+    }
+    .card-title {
+      font-weight:bold;
+      margin-bottom:6px;
+      font-size:13px;
+      color:#111827;
+    }
+    .flex-row {
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+    .field {
+      display:flex;
+      flex-direction:column;
+      font-size:11px;
+      flex:1;
+      min-width:160px;
+    }
+    .field label {
+      margin-bottom:2px;
+      color:#374151;
+    }
+    .field input {
+      padding:4px 6px;
+      border-radius:4px;
+      border:1px solid #d1d5db;
+      font-size:11px;
+    }
+    .readonly {
+      background:#f9fafb;
+      color:#4b5563;
+    }
+    .badge-row {
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      font-size:10px;
+      margin-top:4px;
+    }
+    .badge {
+      padding:3px 7px;
+      border-radius:999px;
+      color:#fff;
+    }
+    .b-approved { background:#166534; } /* dark green */
+    .b-conditions { background:#86efac; color:#14532d; border:1px solid #4ade80; } /* light green */
+    .b-mod { background:#f97316; }
+    .b-reject { background:#b91c1c; }
+    .b-progress { background:#9ca3af; }
+
+    table {
+      width:100%;
+      border-collapse:collapse;
+      margin-top:4px;
+      font-size:11px;
+    }
+    th,td {
+      border:1px solid #e5e7eb;
+      padding:4px;
+      text-align:center;
+      vertical-align:top;
+    }
+    th {
+      background:#f3f4f6;
+      font-weight:600;
+      font-size:11px;
+      color:#111827;
+    }
+    /* Entity column */
+    th:first-child { width:200px; }
+    #nocBody td:first-child {
+      font-weight: bold;
+      text-align: center;
+      background: #eef2ff;
+      vertical-align: middle;
+    }
+
+    .status-select {
+      width:100%;
+      padding:3px;
+      border-radius:4px;
+      border:1px solid #d1d5db;
+      font-size:10px;
+    }
+    .status-cell {
+      padding:3px;
+    }
+    .status-approved    { background:#22c55e; }  /* dark green cell */
+    .status-conditions  { background:#bbf7d0; }  /* light green cell */
+    .status-mod         { background:#ffedd5; }
+    .status-reject      { background:#fecaca; }
+    .status-progress    { background:#fefce8; }
+
+    .comment-box {
+      margin-top:2px;
+    }
+    .comment-box textarea {
+      width:100%;
+      min-height:40px;
+      resize:none;
+      padding:4px;
+      border-radius:4px;
+      border:1px solid #d1d5db;
+      font-size:10px;
+      background:#fefce8;   /* default */
+      overflow:hidden;
+    }
+
+    .progress-wrapper {
+      margin-top:4px;
+      font-size:10px;
+    }
+    .progress-bar {
+      width:100%;
+      height:8px;
+      background:#e5e7eb;
+      border-radius:999px;
+      overflow:hidden;
+      margin-top:2px;
+    }
+    .progress-fill {
+      height:100%;
+      width:0;
+      border-radius:999px;
+      background:#22c55e;
+    }
+    .small-note {
+      font-size:10px;
+      color:#6b7280;
+      margin-top:3px;
+    }
+
+    .park-attach-row {
+      display:flex;
+      flex-wrap:wrap;
+      gap:0;
+      margin-top:4px;
+    }
+    .attach-field {
+      display:flex;
+      flex-direction:column;
+      font-size:10px;
+      min-width:200px;
+      flex:1;
+      padding:4px 8px;
+      border-right:1px solid #e5e7eb;
+    }
+    .attach-field:last-child {
+      border-right:none;
+    }
+    .attach-field label {
+      font-weight:bold;
+      text-align:center;
+    }
+    .attach-field input[type=file] {
+      font-size:10px;
+      margin-top:2px;
+    }
+    .attach-field a {
+      font-size:10px;
+      margin-top:2px;
+      color:#1d4ed8;
+      text-decoration:none;
+      text-align:center;
+      display:block;
+    }
+
+    /* Screen vs print view */
+    .screen-only { }
+    .print-only { display:none; }
+
+    /* Print view styling */
+    .print-logo {
+      max-width:100%;
+      height:auto;
+      display:block;
+      margin:0 auto 8px;
+    }
+    .print-title {
+      font-size:18px;
+      font-weight:bold;
+      margin-bottom:6px;
+    }
+    .print-subtitle {
+      font-size:11px;
+      color:#4b5563;
+      margin-bottom:10px;
+    }
+    .print-park-block {
+      margin-bottom:14px;
+      border-radius:6px;
+      border:1px solid #e5e7eb;
+      padding:8px 10px;
+      background:#ffffff;
+    }
+    .print-park-header {
+      font-weight:bold;
+      margin-bottom:4px;
+    }
+    .print-park-summary {
+      font-size:11px;
+      margin-bottom:4px;
+    }
+    .print-table {
+      width:100%;
+      border-collapse:collapse;
+      font-size:10px;
+    }
+    .print-table th,
+    .print-table td {
+      border:1px solid #e5e7eb;
+      padding:3px 4px;
+      vertical-align:top;
+      text-align:left;
+    }
+    .print-table th {
+      background:#f3f4f6;
+      font-weight:600;
+    }
+    .print-comment {
+      white-space:pre-wrap;
+    }
+
+    @media print {
+      .screen-only { display:none !important; }
+      .print-only { display:block !important; }
+
+      .small-note {
+        font-size:9px;
+      }
+      .field input {
+        font-size:9px;
+        padding:2px 3px;
+      }
+    }
+
+    @media (max-width:768px){
+      th,td { font-size:10px; }
+      .header { flex-direction:column; align-items:flex-start; gap:6px; }
+      .header-buttons { width:100%; display:flex; flex-wrap:wrap; justify-content:flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header screen-only">
+    <div>
+      <div class="header-title">NOC Tracker</div>
+      <div class="header-sub">Project NOC Status – Online Tracker</div>
+    </div>
+    <div class="header-buttons">
+      <button class="btn-save" onclick="saveProgress()">💾 Save</button>
+      <button class="btn-load" onclick="loadProgress()">📥 Load</button>
+      <button class="btn-export" onclick="exportPDF()">📄 Export PDF</button>
+      <button class="btn-reset" onclick="resetProgress()">♻ Reset</button>
+    </div>
+  </div>
+
+  <!-- Screen view -->
+  <div class="container screen-only">
+
+    <!-- Project & Case Info -->
+    <div class="card">
+      <div class="card-title">Project Information</div>
+      <div class="flex-row">
+        <div class="field">
+          <label>Project Name</label>
+          <input id="projectName" type="text" value="Enhancement of Public Parks in Al Ain City­ Phase-02-PKG1">
+        </div>
+        <div class="field">
+          <label>Project Sites</label>
+          <input type="text" value="Al Hayer, Al Basra, Al Waqan, Abu Samra" disabled class="readonly">
+        </div>
+        <div class="field">
+          <label>Target Approvals (out of)</label>
+          <input id="targetApprovals" type="number" min="1" value="13">
+        </div>
+      </div>
+
+      <!-- Case ID per park (fixed) -->
+      <div class="flex-row" style="margin-top:6px;">
+        <div class="field">
+          <label>Case ID – Al Hayer</label>
+          <input id="caseIdHayer" type="text" value="11-20251812393-01-3-01-00-105" readonly class="readonly">
+        </div>
+        <div class="field">
+          <label>Case ID – Al Basra</label>
+          <input id="caseIdBasra" type="text" value="1-20251825923-01-3-01-00-104" readonly class="readonly">
+        </div>
+        <div class="field">
+          <label>Case ID – Al Waqan</label>
+          <input id="caseIdWaqan" type="text" value="11-20251812403-01-3-01-00-105" readonly class="readonly">
+        </div>
+        <div class="field">
+          <label>Case ID – Abu Samra</label>
+          <input id="caseIdAbuSamra" type="text" value="11-20251812413-01-3-01-00-104" readonly class="readonly">
+        </div>
+      </div>
+
+      <!-- Contact info -->
+      <div style="margin-top:6px;" class="flex-row">
+        <div class="field">
+          <label>Contact Name</label>
+          <input id="contactName" type="text" value="Eng. Mohamed Mamdouh Salem" readonly class="readonly">
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input id="contactEmail" type="text" value="Mohamed.s@greenston.ae" readonly class="readonly">
+        </div>
+      </div>
+
+      <div class="badge-row">
+        <span class="badge b-approved">Approved</span>
+        <span class="badge b-conditions">Approval with Conditions</span>
+        <span class="badge b-mod">Need Modification</span>
+        <span class="badge b-reject">Rejection</span>
+        <span class="badge b-progress">In Progress</span>
+      </div>
+      <div class="small-note">
+        Use comments for cases in orange, red, or yellow (Need Modification, Rejection, In Progress).
+      </div>
+    </div>
+
+    <!-- Attachments -->
+    <div class="card card-attachments">
+      <div class="card-title">Attachments (NOC generated report)</div>
+      <div class="park-attach-row">
+        <div class="attach-field">
+          <label>Al Hayer – report</label>
+          <input type="file" id="fileHayer" accept="application/pdf">
+          <a href="#" id="linkHayer">No file</a>
+        </div>
+        <div class="attach-field">
+          <label>Al Basra – report</label>
+          <input type="file" id="fileBasra" accept="application/pdf">
+          <a href="#" id="linkBasra">No file</a>
+        </div>
+        <div class="attach-field">
+          <label>Al Waqan – report</label>
+          <input type="file" id="fileWaqan" accept="application/pdf">
+          <a href="#" id="linkWaqan">No file</a>
+        </div>
+        <div class="attach-field">
+          <label>Abu Samra – report</label>
+          <input type="file" id="fileAbuSamra" accept="application/pdf">
+          <a href="#" id="linkAbuSamra">No file</a>
+        </div>
+      </div>
+      <div class="small-note">
+        Note: Attachments are not saved in the browser. They work while the page is open (for quick viewing/downloading).
+      </div>
+    </div>
+
+    <!-- Progress Summary -->
+    <div class="card">
+      <div class="card-title">Overall Progress by Park</div>
+      <div id="progressSummary"></div>
+    </div>
+
+    <!-- NOC Table -->
+    <div class="card">
+      <div class="card-title">NOC Status by Entity & Park</div>
+      <table id="nocTable">
+        <thead>
+          <tr>
+            <th>Entity</th>
+            <th>Al Hayer</th>
+            <th>Al Basra</th>
+            <th>Al Waqan</th>
+            <th>Abu Samra</th>
+          </tr>
+        </thead>
+        <tbody id="nocBody"></tbody>
+      </table>
+      <div class="small-note">
+        Created by: Eng. Mohamed Mamdouh Salem.<br>
+        <strong>To export as PDF:</strong> Click the “Export PDF” button above, then in the print window choose <em>“Save as PDF”</em> and click <em>Save</em>.
+      </div>
+    </div>
+  </div>
+
+  <!-- Print-only view (summary chart + logos) -->
+  <div class="container print-only" id="printView"></div>
+
+  <script>
+    const parks = ['Al Hayer','Al Basra','Al Waqan','Abu Samra'];
+    const entities = [
+      'Al Ain Distribution Company - AADC - WATER',
+      'Al Ain Distribution Company - AADC - POWER',
+      'Al Ain City Municipality - AAM',
+      'AAM Roads & Infrastructure FP',
+      'ADNOC',
+      'Du',
+      'Etisalat',
+      'UAE Armed Forces General Headquarters',
+      'ITC',
+      'MCC',
+      'TWS',
+      'Tadweer',
+      'TRANSCO',
+      'Etihad Rail'
+    ];
+    const statusOptions = [
+      'Approved',
+      'Approval with Conditions',
+      'Need Modification',
+      'Rejection',
+      'In Progress'
+    ];
+
+    const STORAGE_KEY = 'nocTracker_v1';
+
+    const nocBody = document.getElementById('nocBody');
+    const progressSummary = document.getElementById('progressSummary');
+
+    function autoResize(textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = textarea.scrollHeight + 'px';
+    }
+
+    function buildTable(){
+      nocBody.innerHTML = '';
+      entities.forEach((entity, eIndex) => {
+        const tr = document.createElement('tr');
+        const tdEntity = document.createElement('td');
+        tdEntity.textContent = entity;
+        tr.appendChild(tdEntity);
+
+        parks.forEach((park, pIndex) => {
+          const td = document.createElement('td');
+          td.className = 'status-cell';
+
+          const select = document.createElement('select');
+          select.className = 'status-select';
+          statusOptions.forEach(st => {
+            const opt = document.createElement('option');
+            opt.value = st;
+            opt.textContent = st;
+            select.appendChild(opt);
+          });
+          select.value = 'In Progress';
+          select.dataset.entity = eIndex;
+          select.dataset.park = pIndex;
+
+          const commentWrapper = document.createElement('div');
+          commentWrapper.className = 'comment-box';
+          const textarea = document.createElement('textarea');
+          textarea.placeholder = 'Comment for this case...';
+          textarea.dataset.entity = eIndex;
+          textarea.dataset.park = pIndex;
+          commentWrapper.appendChild(textarea);
+
+          textarea.addEventListener('input', () => autoResize(textarea));
+          autoResize(textarea);
+
+          select.addEventListener('change', () => {
+            updateCellStyle(td, select.value);
+            toggleComment(commentWrapper, select.value);
+            updateProgress();
+          });
+
+          updateCellStyle(td, select.value);
+          toggleComment(commentWrapper, select.value);
+
+          td.appendChild(select);
+          td.appendChild(commentWrapper);
+          tr.appendChild(td);
+        });
+
+        nocBody.appendChild(tr);
+      });
+
+      buildProgressBars();
+      updateProgress();
+    }
+
+    function updateCellStyle(td, status){
+      td.classList.remove(
+        'status-approved',
+        'status-conditions',
+        'status-mod',
+        'status-reject',
+        'status-progress'
+      );
+      if(status === 'Approved') td.classList.add('status-approved');
+      else if(status === 'Approval with Conditions') td.classList.add('status-conditions');
+      else if(status === 'Need Modification') td.classList.add('status-mod');
+      else if(status === 'Rejection') td.classList.add('status-reject');
+      else td.classList.add('status-progress');
+
+      const textarea = td.querySelector('textarea');
+      if (textarea) {
+        let bg = '#fefce8';
+        if (status === 'Approved') bg = '#bbf7d0';          // comment light green
+        else if (status === 'Approval with Conditions') bg = '#dcfce7';
+        else if (status === 'Need Modification') bg = '#ffedd5';
+        else if (status === 'Rejection') bg = '#fee2e2';
+        else if (status === 'In Progress') bg = '#fefce8';
+        textarea.style.backgroundColor = bg;
+        autoResize(textarea);
+      }
+    }
+
+    function toggleComment(wrapper, status){
+      const textarea = wrapper.querySelector('textarea');
+      if (!textarea) return;
+
+      wrapper.style.display = 'block';
+
+      if(status === 'Approved' || status === 'Approval with Conditions'){
+        textarea.readOnly = true;
+        if(!textarea.value || textarea.value === 'Comment for this case...'){
+          textarea.value = 'Cleared';
+        }
+      } else {
+        textarea.readOnly = false;
+        if(textarea.value === 'Cleared'){
+          textarea.value = '';
+        }
+      }
+      autoResize(textarea);
+    }
+
+    function buildProgressBars(){
+      progressSummary.innerHTML = '';
+      parks.forEach((park, idx) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'progress-wrapper';
+        const label = document.createElement('div');
+        label.innerHTML = `<strong>${park}</strong> <span id="parkText-${idx}"></span>`;
+        const bar = document.createElement('div');
+        bar.className = 'progress-bar';
+        const fill = document.createElement('div');
+        fill.className = 'progress-fill';
+        fill.id = `parkBar-${idx}`;
+        bar.appendChild(fill);
+        wrapper.appendChild(label);
+        wrapper.appendChild(bar);
+        progressSummary.appendChild(wrapper);
+      });
+    }
+
+    function updateProgress(){
+      const target = Number(document.getElementById('targetApprovals').value) || 13;
+      parks.forEach((park, pIndex) => {
+        let approvedCount = 0;
+        const selects = nocBody.querySelectorAll(`select[data-park="${pIndex}"]`);
+        selects.forEach(sel => {
+          if(sel.value === 'Approved' || sel.value === 'Approval with Conditions'){
+            approvedCount++;
+          }
+        });
+        const pct = Math.round((approvedCount / target) * 100);
+        const clampedPct = Math.max(0, Math.min(100, pct));
+        const bar = document.getElementById(`parkBar-${pIndex}`);
+        const text = document.getElementById(`parkText-${pIndex}`);
+        if(bar) bar.style.width = clampedPct + '%';
+        if(text) text.textContent = `– ${approvedCount}/${target} approvals (${pct}%)`;
+      });
+    }
+
+    function saveProgress(){
+      const data = {
+        projectName: document.getElementById('projectName').value,
+        targetApprovals: document.getElementById('targetApprovals').value,
+        caseIdHayer: document.getElementById('caseIdHayer').value,
+        caseIdBasra: document.getElementById('caseIdBasra').value,
+        caseIdWaqan: document.getElementById('caseIdWaqan').value,
+        caseIdAbuSamra: document.getElementById('caseIdAbuSamra').value,
+        cases: {}
+      };
+
+      const selects = nocBody.querySelectorAll('select.status-select');
+      selects.forEach(sel => {
+        const eIndex = sel.dataset.entity;
+        const pIndex = sel.dataset.park;
+        const key = `${eIndex}-${pIndex}`;
+        const textarea = nocBody.querySelector(
+          `textarea[data-entity="${eIndex}"][data-park="${pIndex}"]`
+        );
+        data.cases[key] = {
+          status: sel.value,
+          comment: textarea ? textarea.value : ''
+        };
+      });
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      alert('Progress saved in this browser.');
+    }
+
+    function loadProgress(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw){
+        alert('No saved data found.');
+        return;
+      }
+      const data = JSON.parse(raw);
+      if(data.projectName) document.getElementById('projectName').value = data.projectName;
+      if(data.targetApprovals) document.getElementById('targetApprovals').value = data.targetApprovals;
+      if(data.caseIdHayer) document.getElementById('caseIdHayer').value = data.caseIdHayer;
+      if(data.caseIdBasra) document.getElementById('caseIdBasra').value = data.caseIdBasra;
+      if(data.caseIdWaqan) document.getElementById('caseIdWaqan').value = data.caseIdWaqan;
+      if(data.caseIdAbuSamra) document.getElementById('caseIdAbuSamra').value = data.caseIdAbuSamra;
+
+      const selects = nocBody.querySelectorAll('select.status-select');
+      selects.forEach(sel => {
+        const eIndex = sel.dataset.entity;
+        const pIndex = sel.dataset.park;
+        const key = `${eIndex}-${pIndex}`;
+        const rec = data.cases && data.cases[key];
+        if(rec){
+          sel.value = rec.status;
+          const td = sel.closest('td');
+          updateCellStyle(td, sel.value);
+          const textarea = nocBody.querySelector(
+            `textarea[data-entity="${eIndex}"][data-park="${pIndex}"]`
+          );
+          if(textarea){
+            textarea.value = rec.comment || '';
+            autoResize(textarea);
+          }
+          const wrapper = textarea.parentElement;
+          toggleComment(wrapper, sel.value);
+        }
+      });
+      updateProgress();
+      alert('Saved data loaded.');
+    }
+
+    function resetProgress(){
+      if(!confirm('Reset table and clear saved data?')){
+        return;
+      }
+      localStorage.removeItem(STORAGE_KEY);
+      buildTable();
+    }
+
+    // Build smart PDF summary (per park, pending cases only) + logos
+    function buildPrintView(){
+      const container = document.getElementById('printView');
+      container.innerHTML = '';
+
+      const projectName = document.getElementById('projectName').value || 'NOC Tracker';
+      const target = Number(document.getElementById('targetApprovals').value) || 13;
+
+      // Logos banner (first page header)
+      const logo = document.createElement('img');
+      logo.src = 'logos-header.png';  // put your combined logos image in same folder with this name
+      logo.alt = 'DMT, ICON, Greenstone logos';
+      logo.className = 'print-logo';
+      container.appendChild(logo);
+
+      const title = document.createElement('div');
+      title.className = 'print-title';
+      title.textContent = `NOC Pending Summary – ${projectName}`;
+      container.appendChild(title);
+
+      const subtitle = document.createElement('div');
+      subtitle.className = 'print-subtitle';
+      subtitle.textContent = 'This report shows only pending cases (Need Modification, Rejection, In Progress) with their latest comments for each park.';
+      container.appendChild(subtitle);
+
+      // Gather data
+      parks.forEach((park, pIndex) => {
+        const pendingRows = [];
+        let countNeedMod = 0;
+        let countReject = 0;
+        let countProgress = 0;
+        let totalApproved = 0;
+
+        entities.forEach((entity, eIndex) => {
+          const sel = nocBody.querySelector(`select[data-entity="${eIndex}"][data-park="${pIndex}"]`);
+          const textarea = nocBody.querySelector(`textarea[data-entity="${eIndex}"][data-park="${pIndex}"]`);
+          if(!sel) return;
+          const status = sel.value;
+          const comment = textarea ? textarea.value || '' : '';
+
+          if(status === 'Approved' || status === 'Approval with Conditions'){
+            totalApproved++;
+          } else {
+            if(status === 'Need Modification') countNeedMod++;
+            else if(status === 'Rejection') countReject++;
+            else if(status === 'In Progress') countProgress++;
+
+            pendingRows.push({ entity, status, comment });
+          }
+        });
+
+        const block = document.createElement('div');
+        block.className = 'print-park-block';
+
+        const header = document.createElement('div');
+        header.className = 'print-park-header';
+        header.textContent = park;
+        block.appendChild(header);
+
+        const summary = document.createElement('div');
+        const approvedText = `${totalApproved}/${target} approvals cleared`;
+        const totalPending = pendingRows.length;
+        const breakdown = [];
+        if(countNeedMod) breakdown.push(`Need Modification: ${countNeedMod}`);
+        if(countReject) breakdown.push(`Rejection: ${countReject}`);
+        if(countProgress) breakdown.push(`In Progress: ${countProgress}`);
+        summary.className = 'print-park-summary';
+        summary.textContent = `${approvedText}. Pending cases: ${totalPending}. ${breakdown.join(', ')}.`;
+        block.appendChild(summary);
+
+        if (pendingRows.length > 0) {
+          const table = document.createElement('table');
+          table.className = 'print-table';
+          table.innerHTML = `
+            <thead>
+              <tr>
+                <th style="width:28px;">#</th>
+                <th style="width:210px;">Entity</th>
+                <th style="width:90px;">Status</th>
+                <th>Comment</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          `;
+          const tbody = table.querySelector('tbody');
+
+          pendingRows.forEach((row, idx) => {
+            const tr = document.createElement('tr');
+            const tdIdx = document.createElement('td');
+            tdIdx.textContent = idx + 1;
+            const tdEntity = document.createElement('td');
+            tdEntity.textContent = row.entity;
+            const tdStatus = document.createElement('td');
+            tdStatus.textContent = row.status;
+            const tdComment = document.createElement('td');
+            tdComment.className = 'print-comment';
+            tdComment.textContent = row.comment || '-';
+            tr.appendChild(tdIdx);
+            tr.appendChild(tdEntity);
+            tr.appendChild(tdStatus);
+            tr.appendChild(tdComment);
+            tbody.appendChild(tr);
+          });
+
+          block.appendChild(table);
+        }
+
+        container.appendChild(block);
+      });
+
+      // Footer with your name
+      const footer = document.createElement('div');
+      footer.className = 'print-subtitle';
+      footer.style.marginTop = '14px';
+      footer.textContent = 'Prepared by: Eng. Mohamed Mamdouh Salem';
+      container.appendChild(footer);
+    }
+
+    function exportPDF(){
+      buildPrintView();
+      window.print();
+    }
+
+    // Attachments (not saved)
+    function initAttachments(){
+      const map = [
+        {fileId:'fileHayer', linkId:'linkHayer'},
+        {fileId:'fileBasra', linkId:'linkBasra'},
+        {fileId:'fileWaqan', linkId:'linkWaqan'},
+        {fileId:'fileAbuSamra', linkId:'linkAbuSamra'}
+      ];
+      map.forEach(m=>{
+        const input = document.getElementById(m.fileId);
+        const link = document.getElementById(m.linkId);
+        input.addEventListener('change', (e)=>{
+          const f = e.target.files[0];
+          if(!f){
+            link.textContent = 'No file';
+            link.href = '#';
+            return;
+          }
+          const url = URL.createObjectURL(f);
+          link.href = url;
+          link.textContent = 'View PDF';
+          link.target = '_blank';
+        });
+      });
+    }
+
+    window.saveProgress = saveProgress;
+    window.loadProgress = loadProgress;
+    window.resetProgress = resetProgress;
+    window.exportPDF = exportPDF;
+
+    buildTable();
+    initAttachments();
+  </script>
+</body>
+</html>
