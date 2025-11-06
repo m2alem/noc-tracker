@@ -1,4 +1,4 @@
-
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     * { box-sizing: border-box; }
-    body {
+    body {  
       margin: 0;
       font-family: Arial, Helvetica, sans-serif;
       background: #e0f2fe; /* light blue */
@@ -229,12 +229,6 @@
     .print-only { display:none; }
 
     /* Print view styling */
-    .print-logo {
-      max-width:100%;
-      height:auto;
-      display:block;
-      margin:0 auto 8px;
-    }
     .print-title {
       font-size:18px;
       font-weight:bold;
@@ -317,7 +311,7 @@
 
   <!-- Last update bar -->
   <div class="screen-only" style="background:#e5f3ff;border-bottom:1px solid #cbd5e1;padding:4px 24px;font-size:11px;">
-    <span id="lastUpdatedText">Last update: not saved yet</span>
+    <span id="lastUpdatedText">Last update: not loaded yet</span>
   </div>
 
   <!-- Screen view -->
@@ -443,7 +437,7 @@
     </div>
   </div>
 
-  <!-- Print-only view (summary chart + logos) -->
+  <!-- Print-only view (summary chart) -->
   <div class="container print-only" id="printView"></div>
 
   <script>
@@ -476,7 +470,8 @@
       'In Progress'
     ];
 
-    const STORAGE_KEY = 'nocTracker_v1';
+    // Google Apps Script Web App URL (your sheet API)
+    const SHEET_API = "https://https://script.google.com/macros/s/AKfycbwwXs0CWs2Fqu8c-nwPLGudW_kRoUBxaxNyCVVLe-6kWiDZ8_J3WUsPL1bjolFR0vQ3/exec";
 
     const nocBody = document.getElementById('nocBody');
     const progressSummary = document.getElementById('progressSummary');
@@ -564,7 +559,7 @@
       const textarea = td.querySelector('textarea');
       if (textarea) {
         let bg = '#fefce8';
-        if (status === 'Approved') bg = '#bbf7d0';          // comment light green
+        if (status === 'Approved') bg = '#bbf7d0';
         else if (status === 'Approval with Conditions') bg = '#dcfce7';
         else if (status === 'Need Modification') bg = '#ffedd5';
         else if (status === 'Rejection') bg = '#fee2e2';
@@ -632,98 +627,105 @@
       });
     }
 
-    function saveProgress(){
-      const data = {
-        projectName: document.getElementById('projectName').value,
-        targetApprovals: document.getElementById('targetApprovals').value,
-        caseIdHayer: document.getElementById('caseIdHayer').value,
-        caseIdBasra: document.getElementById('caseIdBasra').value,
-        caseIdWaqan: document.getElementById('caseIdWaqan').value,
-        caseIdAbuSamra: document.getElementById('caseIdAbuSamra').value,
-        cases: {}
-      };
+    // ====== GOOGLE SHEET CONNECTION ======
 
-      const selects = nocBody.querySelectorAll('select.status-select');
-      selects.forEach(sel => {
-        const eIndex = sel.dataset.entity;
-        const pIndex = sel.dataset.park;
-        const key = `${eIndex}-${pIndex}`;
-        const textarea = nocBody.querySelector(
-          `textarea[data-entity="${eIndex}"][data-park="${pIndex}"]`
-        );
-        data.cases[key] = {
-          status: sel.value,
-          comment: textarea ? textarea.value : ''
-        };
-      });
+   async function saveProgress() {
+  const data = [];
+  const rows = nocBody.querySelectorAll("tr");
+  rows.forEach((row, eIndex) => {
+    const entity = row.cells[0].innerText;
+    parks.forEach((park, pIndex) => {
+      const sel = row.querySelector(`select[data-entity="${eIndex}"][data-park="${pIndex}"]`);
+      const textarea = row.querySelector(`textarea[data-entity="${eIndex}"][data-park="${pIndex}"]`);
+      const comment = textarea ? textarea.value : "";
+      data.push([entity, park, sel ? sel.value : "", comment]);
+    });
+  });
 
-      // record last updated time
-      const now = new Date();
-      const formatted = now.toLocaleString('en-GB', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-      data.lastUpdated = formatted;
-      setLastUpdatedText(formatted);
+  try {
+    const res = await fetch(SHEET_API, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(data)
+    });
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      alert('Progress saved in this browser.');
+    if (!res.ok) {
+      const text = await res.text();
+      alert("⚠️ Error saving data. Status: " + res.status + "\n" + text);
+      return;
     }
 
-    function loadProgress(){
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if(!raw){
-        alert('No saved data found.');
-        return;
-      }
-      const data = JSON.parse(raw);
+    const now = new Date();
+    const formatted = now.toLocaleString("en-GB", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+    setLastUpdatedText(formatted);
+    alert("✅ Data saved online successfully!");
 
-      if(data.lastUpdated) setLastUpdatedText(data.lastUpdated);
-      if(data.projectName) document.getElementById('projectName').value = data.projectName;
-      if(data.targetApprovals) document.getElementById('targetApprovals').value = data.targetApprovals;
-      if(data.caseIdHayer) document.getElementById('caseIdHayer').value = data.caseIdHayer;
-      if(data.caseIdBasra) document.getElementById('caseIdBasra').value = data.caseIdBasra;
-      if(data.caseIdWaqan) document.getElementById('caseIdWaqan').value = data.caseIdWaqan;
-      if(data.caseIdAbuSamra) document.getElementById('caseIdAbuSamra').value = data.caseIdAbuSamra;
+  } catch (err) {
+    alert("⚠️ Network error while saving:\n" + err.message);
+    console.error(err);
+  }
+}
 
-      const selects = nocBody.querySelectorAll('select.status-select');
-      selects.forEach(sel => {
-        const eIndex = sel.dataset.entity;
-        const pIndex = sel.dataset.park;
-        const key = `${eIndex}-${pIndex}`;
-        const rec = data.cases && data.cases[key];
-        if(rec){
-          sel.value = rec.status;
-          const td = sel.closest('td');
-          updateCellStyle(td, sel.value);
-          const textarea = nocBody.querySelector(
-            `textarea[data-entity="${eIndex}"][data-park="${pIndex}"]`
-          );
-          if(textarea){
-            textarea.value = rec.comment || '';
-            autoResize(textarea);
+
+    async function loadProgress() {
+      try {
+        const res = await fetch(SHEET_API);
+        const rows = await res.json();
+
+        // rows[0] = header: ["Entity","Park","Status","Comment"]
+        rows.slice(1).forEach(r => {
+          const [entity, park, status, comment] = r;
+
+          const eIndex = entities.indexOf(entity);
+          const pIndex = parks.indexOf(park);
+          if (eIndex === -1 || pIndex === -1) return;
+
+          const sel = nocBody.querySelector(`select[data-entity="${eIndex}"][data-park="${pIndex}"]`);
+          const textarea = nocBody.querySelector(`textarea[data-entity="${eIndex}"][data-park="${pIndex}"]`);
+          if (sel) {
+            sel.value = status || 'In Progress';
+            updateCellStyle(sel.closest('td'), sel.value);
           }
-          const wrapper = textarea.parentElement;
-          toggleComment(wrapper, sel.value);
-        }
-      });
-      updateProgress();
-      alert('Saved data loaded.');
+          if (textarea) {
+            textarea.value = comment || (sel && (sel.value === 'Approved' || sel.value === 'Approval with Conditions') ? 'Cleared' : '');
+            toggleComment(textarea.parentElement, sel ? sel.value : 'In Progress');
+          }
+        });
+
+        updateProgress();
+        const now = new Date();
+        const formatted = now.toLocaleString("en-GB", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit"
+        });
+        setLastUpdatedText(formatted);
+        alert("✅ Data loaded from Google Sheet.");
+      } catch (err) {
+        console.error(err);
+        alert("⚠️ Could not load data from Google Sheet.");
+      }
     }
 
     function resetProgress(){
-      if(!confirm('Reset table and clear saved data?')){
+      if(!confirm('Reset table on screen? (This does not clear Google Sheet)')){
         return;
       }
-      localStorage.removeItem(STORAGE_KEY);
       buildTable();
-      setLastUpdatedText('not saved yet');
+      setLastUpdatedText('not loaded yet');
     }
 
-    // Build smart PDF summary (per park, pending cases only) + logos
+    // Build smart PDF summary
     function buildPrintView(){
       const container = document.getElementById('printView');
       container.innerHTML = '';
@@ -731,37 +733,34 @@
       const projectName = document.getElementById('projectName').value || 'NOC Tracker';
       const target = Number(document.getElementById('targetApprovals').value) || 13;
 
-    // Organisation names row (centered and bold)
-// Organisation names row (centered and bold)
-const orgRow = document.createElement('div');
-orgRow.style.display = 'flex';
-orgRow.style.justifyContent = 'space-between';
-orgRow.style.textAlign = 'center';
-orgRow.style.fontWeight = 'bold';
-orgRow.style.fontSize = '12px';
-orgRow.style.marginBottom = '40px'; // 👈 adds a bit more space below
-orgRow.innerHTML = `
-  <span style="flex:1;">DMT</span>
-  <span style="flex:1;">Green Stone Landscaping</span>
-  <span style="flex:1;">ICON</span>
-`;
-container.appendChild(orgRow);
+      // Top org row
+      const orgRow = document.createElement('div');
+      orgRow.style.display = 'flex';
+      orgRow.style.justifyContent = 'space-between';
+      orgRow.style.textAlign = 'center';
+      orgRow.style.fontWeight = 'bold';
+      orgRow.style.fontSize = '12px';
+      orgRow.style.marginBottom = '20px';
+      orgRow.innerHTML = `
+        <span style="flex:1;">DMT</span>
+        <span style="flex:1;">Green Stone Landscaping</span>
+        <span style="flex:1;">ICON</span>
+      `;
+      container.appendChild(orgRow);
 
-// Title with project name below
-const title = document.createElement('div');
-title.className = 'print-title';
-title.innerHTML = `
-  NOC Pending Summary<br>
-  <span style="font-size:14px; font-weight:normal;">${projectName}</span>
-`;
-container.appendChild(title);
+      const title = document.createElement('div');
+      title.className = 'print-title';
+      title.innerHTML = `
+        NOC Pending Summary<br>
+        <span style="font-size:14px; font-weight:normal;">${projectName}</span>
+      `;
+      container.appendChild(title);
 
       const subtitle = document.createElement('div');
       subtitle.className = 'print-subtitle';
       subtitle.textContent = 'This report shows only pending cases (Need Modification, Rejection, In Progress) with their latest comments for each park.';
       container.appendChild(subtitle);
 
-      // Gather data
       parks.forEach((park, pIndex) => {
         const pendingRows = [];
         let countNeedMod = 0;
@@ -846,7 +845,6 @@ container.appendChild(title);
         container.appendChild(block);
       });
 
-      // Footer with your name
       const footer = document.createElement('div');
       footer.className = 'print-subtitle';
       footer.style.marginTop = '14px';
@@ -859,7 +857,6 @@ container.appendChild(title);
       window.print();
     }
 
-    // 2-in-1 Share button: generate READ-ONLY link (?view=readonly)
     function shareTracker() {
       const url = new URL(window.location.href);
       url.searchParams.set('view', 'readonly');
@@ -878,7 +875,6 @@ container.appendChild(title);
       }
     }
 
-    // Attachments (not saved)
     function initAttachments(){
       const map = [
         {fileId:'fileHayer', linkId:'linkHayer'},
@@ -904,71 +900,33 @@ container.appendChild(title);
       });
     }
 
- // On load: apply saved data (for this browser) and then freeze if view-only
-window.addEventListener('DOMContentLoaded', () => {
-  const rawInit = localStorage.getItem(STORAGE_KEY);
-  if (rawInit) {
-    try {
-      const data = JSON.parse(rawInit);
+    window.addEventListener('DOMContentLoaded', async () => {
+      buildTable();
+      initAttachments();
 
-      // last updated text
-      if (data.lastUpdated) setLastUpdatedText(data.lastUpdated);
+      // auto-load from sheet on open
+      await loadProgress();
 
-      // apply statuses & comments to table
-      const selects = nocBody.querySelectorAll('select.status-select');
-      selects.forEach(sel => {
-        const eIndex = sel.dataset.entity;
-        const pIndex = sel.dataset.park;
-        const key = `${eIndex}-${pIndex}`;
-        const rec = data.cases && data.cases[key];
-        if (rec) {
-          sel.value = rec.status;
-          const td = sel.closest('td');
-          updateCellStyle(td, sel.value);
-          const textarea = nocBody.querySelector(
-            `textarea[data-entity="${eIndex}"][data-park="${pIndex}"]`
-          );
-          if (textarea) {
-            textarea.value = rec.comment || '';
-            autoResize(textarea);
-            const wrapper = textarea.parentElement;
-            toggleComment(wrapper, sel.value);
+      if (VIEW_ONLY_MODE) {
+        document.querySelectorAll('.btn-save, .btn-load, .btn-reset, .btn-share')
+          .forEach(btn => { if (btn) btn.style.display = 'none'; });
+
+        document.querySelectorAll('input, select, textarea').forEach(el => {
+          if (el.type === 'file') {
+            el.style.display = 'none';
+          } else {
+            el.readOnly = true;
+            el.disabled = true;
           }
-        }
-      });
-
-      updateProgress();
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  if (VIEW_ONLY_MODE) {
-    // Hide editing buttons
-    document.querySelectorAll('.btn-save, .btn-load, .btn-reset, .btn-share')
-      .forEach(btn => { if (btn) btn.style.display = 'none'; });
-
-    // Disable all inputs and selects and textareas (freeze view)
-    document.querySelectorAll('input, select, textarea').forEach(el => {
-      if (el.type === 'file') {
-        el.style.display = 'none'; // hide file uploads
-      } else {
-        el.readOnly = true;
-        el.disabled = true;
+        });
       }
     });
-  }
-});
-
 
     window.saveProgress = saveProgress;
     window.loadProgress = loadProgress;
     window.resetProgress = resetProgress;
     window.exportPDF = exportPDF;
     window.shareTracker = shareTracker;
-
-    buildTable();
-    initAttachments();
   </script>
 </body>
 </html>
