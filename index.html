@@ -1,4 +1,4 @@
-<!doctype html>
+
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -315,6 +315,11 @@
     </div>
   </div>
 
+  <!-- Last update bar -->
+  <div class="screen-only" style="background:#e5f3ff;border-bottom:1px solid #cbd5e1;padding:4px 24px;font-size:11px;">
+    <span id="lastUpdatedText">Last update: not saved yet</span>
+  </div>
+
   <!-- Screen view -->
   <div class="container screen-only">
 
@@ -475,6 +480,11 @@
 
     const nocBody = document.getElementById('nocBody');
     const progressSummary = document.getElementById('progressSummary');
+
+    function setLastUpdatedText(text) {
+      const el = document.getElementById('lastUpdatedText');
+      if (el) el.textContent = 'Last update: ' + text;
+    }
 
     function autoResize(textarea) {
       textarea.style.height = 'auto';
@@ -647,6 +657,18 @@
         };
       });
 
+      // record last updated time
+      const now = new Date();
+      const formatted = now.toLocaleString('en-GB', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      data.lastUpdated = formatted;
+      setLastUpdatedText(formatted);
+
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       alert('Progress saved in this browser.');
     }
@@ -658,6 +680,8 @@
         return;
       }
       const data = JSON.parse(raw);
+
+      if(data.lastUpdated) setLastUpdatedText(data.lastUpdated);
       if(data.projectName) document.getElementById('projectName').value = data.projectName;
       if(data.targetApprovals) document.getElementById('targetApprovals').value = data.targetApprovals;
       if(data.caseIdHayer) document.getElementById('caseIdHayer').value = data.caseIdHayer;
@@ -696,6 +720,7 @@
       }
       localStorage.removeItem(STORAGE_KEY);
       buildTable();
+      setLastUpdatedText('not saved yet');
     }
 
     // Build smart PDF summary (per park, pending cases only) + logos
@@ -706,17 +731,30 @@
       const projectName = document.getElementById('projectName').value || 'NOC Tracker';
       const target = Number(document.getElementById('targetApprovals').value) || 13;
 
-      // Logos banner (first page header)
-      const logo = document.createElement('img');
-      logo.src = 'logos-header.png';  // combined logos image
-      logo.alt = 'DMT, ICON, Greenstone logos';
-      logo.className = 'print-logo';
-      container.appendChild(logo);
+    // Organisation names row (centered and bold)
+// Organisation names row (centered and bold)
+const orgRow = document.createElement('div');
+orgRow.style.display = 'flex';
+orgRow.style.justifyContent = 'space-between';
+orgRow.style.textAlign = 'center';
+orgRow.style.fontWeight = 'bold';
+orgRow.style.fontSize = '12px';
+orgRow.style.marginBottom = '40px'; // 👈 adds a bit more space below
+orgRow.innerHTML = `
+  <span style="flex:1;">DMT</span>
+  <span style="flex:1;">Green Stone Landscaping</span>
+  <span style="flex:1;">ICON</span>
+`;
+container.appendChild(orgRow);
 
-      const title = document.createElement('div');
-      title.className = 'print-title';
-      title.textContent = `NOC Pending Summary – ${projectName}`;
-      container.appendChild(title);
+// Title with project name below
+const title = document.createElement('div');
+title.className = 'print-title';
+title.innerHTML = `
+  NOC Pending Summary<br>
+  <span style="font-size:14px; font-weight:normal;">${projectName}</span>
+`;
+container.appendChild(title);
 
       const subtitle = document.createElement('div');
       subtitle.className = 'print-subtitle';
@@ -866,14 +904,62 @@
       });
     }
 
-    // On load: apply view-only mode (hide buttons) if ?view=readonly
-    window.addEventListener('DOMContentLoaded', () => {
-      if (VIEW_ONLY_MODE) {
-        document.querySelectorAll('.btn-save, .btn-load, .btn-reset, .btn-share').forEach(btn => {
-          if (btn) btn.style.display = 'none';
-        });
+ // On load: apply saved data (for this browser) and then freeze if view-only
+window.addEventListener('DOMContentLoaded', () => {
+  const rawInit = localStorage.getItem(STORAGE_KEY);
+  if (rawInit) {
+    try {
+      const data = JSON.parse(rawInit);
+
+      // last updated text
+      if (data.lastUpdated) setLastUpdatedText(data.lastUpdated);
+
+      // apply statuses & comments to table
+      const selects = nocBody.querySelectorAll('select.status-select');
+      selects.forEach(sel => {
+        const eIndex = sel.dataset.entity;
+        const pIndex = sel.dataset.park;
+        const key = `${eIndex}-${pIndex}`;
+        const rec = data.cases && data.cases[key];
+        if (rec) {
+          sel.value = rec.status;
+          const td = sel.closest('td');
+          updateCellStyle(td, sel.value);
+          const textarea = nocBody.querySelector(
+            `textarea[data-entity="${eIndex}"][data-park="${pIndex}"]`
+          );
+          if (textarea) {
+            textarea.value = rec.comment || '';
+            autoResize(textarea);
+            const wrapper = textarea.parentElement;
+            toggleComment(wrapper, sel.value);
+          }
+        }
+      });
+
+      updateProgress();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  if (VIEW_ONLY_MODE) {
+    // Hide editing buttons
+    document.querySelectorAll('.btn-save, .btn-load, .btn-reset, .btn-share')
+      .forEach(btn => { if (btn) btn.style.display = 'none'; });
+
+    // Disable all inputs and selects and textareas (freeze view)
+    document.querySelectorAll('input, select, textarea').forEach(el => {
+      if (el.type === 'file') {
+        el.style.display = 'none'; // hide file uploads
+      } else {
+        el.readOnly = true;
+        el.disabled = true;
       }
     });
+  }
+});
+
 
     window.saveProgress = saveProgress;
     window.loadProgress = loadProgress;
