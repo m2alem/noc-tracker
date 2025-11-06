@@ -471,7 +471,7 @@
     ];
 
     // Google Apps Script Web App URL (your sheet API)
-    const SHEET_API = "https://https://script.google.com/macros/s/AKfycbwwXs0CWs2Fqu8c-nwPLGudW_kRoUBxaxNyCVVLe-6kWiDZ8_J3WUsPL1bjolFR0vQ3/exec";
+    const SHEET_API = "https://script.google.com/macros/s/AKfycbwwXs0CWs2Fqu8c-nwPLGudW_kRoUBxaxNyCVVLe-6kWiDZ8_J3WUsPL1bjolFR0vQ3/exec";
 
     const nocBody = document.getElementById('nocBody');
     const progressSummary = document.getElementById('progressSummary');
@@ -629,51 +629,44 @@
 
     // ====== GOOGLE SHEET CONNECTION ======
 
-   async function saveProgress() {
-  const data = [];
-  const rows = nocBody.querySelectorAll("tr");
-  rows.forEach((row, eIndex) => {
-    const entity = row.cells[0].innerText;
-    parks.forEach((park, pIndex) => {
-      const sel = row.querySelector(`select[data-entity="${eIndex}"][data-park="${pIndex}"]`);
-      const textarea = row.querySelector(`textarea[data-entity="${eIndex}"][data-park="${pIndex}"]`);
-      const comment = textarea ? textarea.value : "";
-      data.push([entity, park, sel ? sel.value : "", comment]);
-    });
-  });
+    async function saveProgress() {
+      const data = [];
+      const rows = nocBody.querySelectorAll("tr");
+      rows.forEach((row, eIndex) => {
+        const entity = row.cells[0].innerText;
+        parks.forEach((park, pIndex) => {
+          const sel = row.querySelector(`select[data-entity="${eIndex}"][data-park="${pIndex}"]`);
+          const textarea = row.querySelector(`textarea[data-entity="${eIndex}"][data-park="${pIndex}"]`);
+          const comment = textarea ? textarea.value : "";
+          data.push([entity, park, sel ? sel.value : "", comment]);
+        });
+      });
 
-  try {
-    const res = await fetch(SHEET_API, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(data)
-    });
+      try {
+        const res = await fetch(SHEET_API, {
+          method: "POST",
+          body: JSON.stringify(data)
+        });
 
-    if (!res.ok) {
-      const text = await res.text();
-      alert("⚠️ Error saving data. Status: " + res.status + "\n" + text);
-      return;
+        if (res.ok) {
+          const now = new Date();
+          const formatted = now.toLocaleString("en-GB", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit"
+          });
+          setLastUpdatedText(formatted);
+          alert("✅ Data saved online successfully!");
+        } else {
+          alert("⚠️ Error saving data to Google Sheet.");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("⚠️ Network error while saving.");
+      }
     }
-
-    const now = new Date();
-    const formatted = now.toLocaleString("en-GB", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit"
-    });
-    setLastUpdatedText(formatted);
-    alert("✅ Data saved online successfully!");
-
-  } catch (err) {
-    alert("⚠️ Network error while saving:\n" + err.message);
-    console.error(err);
-  }
-}
-
 
     async function loadProgress() {
       try {
