@@ -224,55 +224,105 @@
       display:block;
     }
 
-    /* Screen vs print view */
-    .screen-only { }
-    .print-only { display:none; }
+   /* ===== PRINT VIEW STYLING (UPDATED COLORFUL VERSION) ===== */
+.print-only {
+  display: none;
+}
+@media print {
+  .screen-only { display: none !important; }
+  .print-only { display: block !important; }
+}
 
-    /* Print view styling */
-    .print-title {
-      font-size:18px;
-      font-weight:bold;
-      margin-bottom:6px;
-    }
-    .print-subtitle {
-      font-size:11px;
-      color:#4b5563;
-      margin-bottom:10px;
-    }
-    .print-park-block {
-      margin-bottom:14px;
-      border-radius:6px;
-      border:1px solid #e5e7eb;
-      padding:8px 10px;
-      background:#ffffff;
-    }
-    .print-park-header {
-      font-weight:bold;
-      margin-bottom:4px;
-    }
-    .print-park-summary {
-      font-size:11px;
-      margin-bottom:4px;
-    }
-    .print-table {
-      width:100%;
-      border-collapse:collapse;
-      font-size:10px;
-    }
-    .print-table th,
-    .print-table td {
-      border:1px solid #e5e7eb;
-      padding:3px 4px;
-      vertical-align:top;
-      text-align:left;
-    }
-    .print-table th {
-      background:#f3f4f6;
-      font-weight:600;
-    }
-    .print-comment {
-      white-space:pre-wrap;
-    }
+/* Header section for PDF */
+.print-header {
+  text-align: center;
+  font-weight: bold;
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+.print-header div {
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+  font-size: 13px;
+  margin-bottom: 8px;
+  color: #1e3a8a;
+}
+
+/* Title & subtitle */
+.print-title {
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+.print-subtitle {
+  text-align: center;
+  font-size: 12px;
+  color: #475569;
+  margin-bottom: 16px;
+}
+
+/* Park blocks */
+.print-park-block {
+  border-radius: 8px;
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+.print-park-block:nth-child(odd) {
+  background: #f1f5f9;
+}
+.print-park-header {
+  font-weight: bold;
+  font-size: 13px;
+  color: #1e3a8a;
+  margin-bottom: 4px;
+}
+.print-park-summary {
+  font-size: 11px;
+  margin-bottom: 6px;
+  color: #334155;
+}
+
+/* Table inside park section */
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+}
+.print-table th {
+  background: #e0f2fe;
+  color: #0f172a;
+  text-align: left;
+  padding: 4px;
+  border: 1px solid #cbd5e1;
+}
+.print-table td {
+  border: 1px solid #e2e8f0;
+  padding: 4px;
+  vertical-align: top;
+  white-space: pre-wrap;
+}
+
+/* Status highlighting in table */
+.print-table td.status-approved { background: #bbf7d0; }
+.print-table td.status-conditions { background: #dcfce7; }
+.print-table td.status-mod { background: #fed7aa; }
+.print-table td.status-reject { background: #fecaca; }
+.print-table td.status-progress { background: #fef9c3; }
+
+/* Footer */
+.print-footer {
+  text-align: right;
+  font-size: 11px;
+  color: #475569;
+  margin-top: 20px;
+  border-top: 1px solid #cbd5e1;
+  padding-top: 4px;
+}
 
     @media print {
       .screen-only { display:none !important; }
@@ -331,7 +381,7 @@
         </div>
         <div class="field">
           <label>Target Approvals (out of)</label>
-          <input id="targetApprovals" type="number" min="1" value="13">
+          <input id="targetApprovals" type="number" min="1" value="14">
         </div>
       </div>
 
@@ -375,7 +425,7 @@
         <span class="badge b-progress">In Progress</span>
       </div>
       <div class="small-note">
-       the comments for cases in orange, red, or yellow (Need Modification, Rejection, In Progress).
+        the comments only for cases in orange, red, or yellow (Need Modification, Rejection, In Progress).
       </div>
     </div>
 
@@ -431,7 +481,7 @@
         <tbody id="nocBody"></tbody>
       </table>
       <div class="small-note">
-        prepared by: Eng. Mohamed Mamdouh Salem.<br>
+        Created by: Eng. Mohamed Mamdouh Salem.<br>
         <strong>To export as PDF:</strong> Click the “Export PDF” button above, then in the print window choose <em>“Save as PDF”</em> and click <em>Save</em>.
       </div>
     </div>
@@ -724,7 +774,7 @@
       container.innerHTML = '';
 
       const projectName = document.getElementById('projectName').value || 'NOC Tracker';
-      const target = Number(document.getElementById('targetApprovals').value) || 13;
+      const target = Number(document.getElementById('targetApprovals').value) || 14;
 
       // Top org row
       const orgRow = document.createElement('div');
@@ -732,11 +782,11 @@
       orgRow.style.justifyContent = 'space-between';
       orgRow.style.textAlign = 'center';
       orgRow.style.fontWeight = 'bold';
-      orgRow.style.fontSize = '12px';
-      orgRow.style.marginBottom = '20px';
+      orgRow.style.fontSize = '17px';
+      orgRow.style.marginBottom = '40px';
       orgRow.innerHTML = `
         <span style="flex:1;">DMT</span>
-        <span style="flex:1;">Green Stone Landscaping</span>
+        <span style="flex:1;">GSL</span>
         <span style="flex:1;">ICON</span>
       `;
       container.appendChild(orgRow);
@@ -775,7 +825,7 @@
             else if(status === 'Rejection') countReject++;
             else if(status === 'In Progress') countProgress++;
 
-            pendingRows.push({ entity, status, comment });
+            pendingRows.push({ entity, status, action });
           }
         });
 
